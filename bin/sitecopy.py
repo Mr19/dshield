@@ -4,17 +4,20 @@
 # It will retrieve and save the response for later replay as part of a honeypot.
 
 import sys
+import optparse
 import os
 import io
 import httplib
 import sqlite3
 from urlparse import urlparse
+import requests
+
 
 def sitecopy(urlstring, webpath):
     url = urlparse(urlstring)
     domain = url.netloc
 
-    if len(sys.argv)>2:
+    if len(sys.argv) > 2:
         browser = sys.argv[2]
     else:
         browser = 'default'
@@ -60,11 +63,11 @@ def sitecopy(urlstring, webpath):
     webpath_not_exists = not os.path.exists(webpath)
     if webpath_not_exists:
         os.makedirs(webpath)
-    #print body
+    # print body
     config = config = '..' + os.path.sep + 'DB' + os.path.sep + 'webserver.sqlite'
     con = sqlite3.connect(config)
     c = con.cursor()
-    #Creates table for SITES unique values - RefID will be  RefID
+    # Creates table for SITES unique values - RefID will be  RefID
     c.execute('''CREATE TABLE IF NOT EXISTS sites
                 (
                     ID integer primary key,
@@ -72,7 +75,7 @@ def sitecopy(urlstring, webpath):
                     CONSTRAINT site_unique UNIQUE (site)
                 )
             ''')
-    #Creates table for response HEADERS based on useragents.RefID will be IndexID
+    # Creates table for response HEADERS based on useragents.RefID will be IndexID
     c.execute('''CREATE TABLE IF NOT EXISTS headers
                 (
                     RID integer,
@@ -81,7 +84,7 @@ def sitecopy(urlstring, webpath):
                 )
             ''')
 
-    #c.execute('''CREATE TABLE IF NOT EXISTS body(ID integer primary key,RefID integer,body tag text,)''')
+    # c.execute('''CREATE TABLE IF NOT EXISTS body(ID integer primary key,RefID integer,body tag text,)''')
     c.execute('''CREATE TABLE IF NOT EXISTS body
                 (
                     RID integer,
@@ -118,7 +121,7 @@ def sitecopy(urlstring, webpath):
             os.chdir(webpath)
             fd = io.open(domain, 'wb')
             # Writing text
-            #ret = fd.write(unicode(body))
+            # ret = fd.write(unicode(body))
             for i in str(body):
                 fd.write(i)
             os.chdir(curdir)
@@ -126,17 +129,63 @@ def sitecopy(urlstring, webpath):
             print("Write failed - do you have permissions?")
     return domain
 
+
+def PrintManual():
+    manual = '''
+
+Manual: 
+
+This program scrapes a website and saves all resources locally including images, javascript, and css files.
+
+
+'''
+    for line in manual.split('\n'):
+        print(textwrap.fill(line))
+
+
+def _build_cli_parser():
+    usage = "usage: %prog [options]"
+    desc = "Scrape a website and make a local copy."
+
+    parser = optparse.OptionParser(usage=usage, description=desc)
+
+    parser.add_option("-s", "--source", action="store", type="string", dest="target_web",
+                      help="Select a source website to scrape")
+    parser.add_option("-u", "--useragent", action="store_true", default=False, type="string", dest="useragent",
+                      help="Select a user agent")
+    parser.add_option("-d", "--dest", action="store_true", default=False, type="string", dest="dest_web",
+                      help="Location to store scraped website")
+    parser.add_option("-m", "--man", action="store_true", default=False, dest="man", help="Print manual")
+
+    if options.man:
+        oParser.print_help()
+        PrintManual()
+        return
+
+    if len(args) == 0:
+        oParser.print_help()
+        return
+
+    return parser
+
+
+def scrape():
+
+
 if __name__ == '__main__':
-    #Create a web server and define the handler to manage the
-    #incoming request
-    try:
-        sitecopy()
-    except:
-        if len(sys.argv) > 1:
-            urlstring = sys.argv[1]
-            url = urlparse(urlstring)
-            domain = url.netloc
-            webpath = '..' + os.path.sep + 'srv' + os.path.sep + 'www'
-            sitecopy(urlstring, webpath)
-        else:
-            sys.exit('URL is required')
+    parser = _build_cli_parser()
+    options, args = parser.parse_args(sys.argv)
+
+    # Create a web server and define the handler to manage the
+    # incoming request
+    # try:
+    #     sitecopy()
+    # except:
+    #     if len(sys.argv) > 1:
+    #         urlstring = sys.argv[1]
+    #         url = urlparse(urlstring)
+    #         domain = url.netloc
+    #         webpath = '..' + os.path.sep + 'srv' + os.path.sep + 'www'
+    #         sitecopy(urlstring, webpath)
+    #     else:
+    #         sys.exit('URL is required')
